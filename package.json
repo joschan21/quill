@@ -15,6 +15,7 @@
     "@mantine/hooks": "^7.0.1",
     "@pinecone-database/pinecone": "^1.0.1",
     "@prisma/client": "^5.3.1",
+    "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.4",
     "@radix-ui/react-dropdown-menu": "^2.0.5",
     "@radix-ui/react-progress": "^1.0.3",
