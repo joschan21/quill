@@ -195,9 +195,9 @@ const Page = () => {
                             ) : (
                               <p
                                 className={cn(
-                                  'text-gray-400',
+                                  'text-gray-600',
                                   {
-                                    'text-gray-600':
+                                    'text-gray-400':
                                       negative,
                                   }
                                 )}>
