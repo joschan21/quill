@@ -1,104 +1,110 @@
 import { db } from '@/db';
-import { openai } from '@/lib/openai';
-import { getPineconeClient } from '@/lib/pinecone';
-import { sendMessageValidator } from '@/lib/sendMessageValidator';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
+import { createUploadthing } from 'uploadthing/next';
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { PineconeStore } from 'langchain/vectorstores/pinecone';
-import { NextRequest } from 'next/server';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { getPineconeClient } from '@/lib/pinecone';
+import { getUserSubscriptionPlan } from '@/lib/stripe';
+import { plans } from '@/config/stripe';
 
-export const POST = async (req: NextRequest) => {
-  const body = await req.json();
+const f = createUploadthing();
+
+const middleware = async () => {
   const { getUser } = getKindeServerSession();
   const user = getUser();
-  const { id: userId } = user;
+  if (!user || !user.id) throw new Error('Unauthorized');
 
-  if (!userId) {
-    return new Response('Unauthorized', { status: 401 });
+  const subPlan = getUserSubscriptionPlan()
+
+
+  return { subPlan, userId: user.id };
+};
+
+const onUploadComplete = async ({ metadata, file }: {
+  metadata: Awaited<ReturnType<typeof middleware>>, file: {
+    key: string,
+    name: string,
+    url: string,
   }
+}) => {
 
-  const { fileId, message } = sendMessageValidator.parse(body);
-  const file = await db.file.findFirst({ where: { id: fileId, userId } });
+  const isFileExist = await db.file.findFirst({ where: { key: file.key } });
+  if (isFileExist) return;
 
-  if (!file) {
-    return new Response('Not found', { status: 404 });
-  }
-
-  await db.message.create({
+  const createdFile = await db.file.create({
     data: {
-      text: message,
-      isUserMessage: true,
-      userId,
-      fileId,
+      key: file.key,
+      name: file.name,
+      userId: metadata.userId,
+      url: `https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`,
+      uploadStatus: 'PROCESSING',
     },
-  })
-
-  // 1: Vectorize message
-  const embeddings = new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY });
-
-  // Initialize the Pinecone vector store
-  const pinecone = await getPineconeClient();
-  const pineconeIndex = pinecone.Index('quill'); // Use a single index name
-
-  const vectorStore = await PineconeStore.fromExistingIndex(embeddings, { pineconeIndex }); 
-
-  // console.log(vectorStore)
+  });
 
   try {
-    // Search for similar messages using the file ID as context
-    const results = await vectorStore.similaritySearch(message, 4);
-    const prevMessages = await db.message.findMany({
-      where: { fileId },
-      orderBy: { createdAt: 'asc' },
-      take: 6,
+    const response = await fetch(`https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`);
+    const blob = await response.blob();
+    const loader = new PDFLoader(blob);
+    const pageLevelDocs = await loader.load();
+    const pagesAmt = pageLevelDocs.length;
+
+    const { subPlan } = metadata
+    //@ts-ignore
+    const { isSubscribed } = subPlan
+
+    const isProExceeded = pagesAmt > plans.find((plan) => plan.name === 'Pro')!.pagesPerPdf
+    const isFreeExceeded = pagesAmt > plans.find((plan) => plan.name === 'Free')!.pagesPerPdf
+
+    if ((isProExceeded || isFreeExceeded) && (!isSubscribed && isFreeExceeded)) {
+      await db.file.update({
+        where: {
+          id: createdFile.id
+        },
+        data: {
+          uploadStatus: 'FAILED'
+        }
+      })
+    }
+
+    // Create a single Pinecone index for all data
+    const pinecone = await getPineconeClient();
+    const pineconeIndex = pinecone.Index('quill'); // Use a single index name
+
+    // Add a 'dataset' field to the data to distinguish the source
+    const combinedData = pageLevelDocs.map((document) => {
+      return {
+        ...document,
+        metadata: {
+          fileId: createdFile.id,
+        },
+        dataset: 'pdf', // Use a field to indicate the source dataset (e.g., 'pdf')
+      };
     });
-    const formattedPrevMessages = prevMessages.map((msg) => ({
-      role: msg.isUserMessage ? 'user' : 'assistant',
-      content: msg.text,
-    }));
     
-    // Construct a context string with previous conversation, results, and user input
-    const context = `PREVIOUS CONVERSATION:${formattedPrevMessages.map((msg) => {
-      if (msg.role === 'user') return `User:${msg.content}\n`;
-      return `Assistant:${msg.content}\n`;
-    })}CONTEXT:${results.map((r) => r.pageContent).join('\n\n')}USER INPUT:${message}`;
+    const embeddings = new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY });
 
-    console.log(context)
-
-    // Use a system message to instruct the model
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      temperature: 0.7, // Adjust the temperature as needed
-      stream: true,
-      messages: [
-        {
-          role: 'system',
-          content: 'You have access to a PDF document. Please use the information from the document to answer the user\'s question.',
-        },
-        {
-          role: 'user',
-          content: context, // Provide the context here
-        },
-      ],
+    await PineconeStore.fromDocuments(combinedData, embeddings, {
+      //@ts-ignore
+      pineconeIndex,
     });
 
-    const stream = OpenAIStream(response, {
-      async onCompletion(completion) {
-        await db.message.create({
-          data: {
-            text: completion,
-            isUserMessage: false,
-            fileId,
-            userId,
-          },
-        });
-      },
+    await db.file.update({
+      data: { uploadStatus: 'SUCCESS' },
+      where: { id: createdFile.id },
     });
-
-    return new StreamingTextResponse(stream);
-  } catch (error) {
-    console.error('Error searching for similar messages:', error);
-    return new Response('InternalServerError', { status: 500 });
+  } catch (err) {
+    await db.file.update({
+      data: { uploadStatus: 'FAILED' },
+      where: { id: createdFile.id },
+    });
   }
+}
+
+
+export const ourFileRouter = {
+  freeUploader: f({ pdf: { maxFileSize: '4MB' } }).middleware(middleware).onUploadComplete(onUploadComplete),
+  proUploader: f({ pdf: { maxFileSize: '16MB' } }).middleware(middleware).onUploadComplete(onUploadComplete),
 };
+
+export type OurFileRouter = typeof ourFileRouter;
