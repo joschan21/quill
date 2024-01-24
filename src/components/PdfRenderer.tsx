@@ -210,7 +210,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
                 <Page
                   width={width ? width : 1}
                   pageNumber={currPage}
-                  scale={scale}
+                  scale={renderedScale}
                   rotate={rotation}
                   key={'@' + renderedScale}
                 />
