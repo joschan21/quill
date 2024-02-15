@@ -1,28 +1,30 @@
 export const PLANS = [
   {
-    name: 'Free',
-    slug: 'free',
+    name: "Free",
+    slug: "free",
     quota: 10,
     pagesPerPdf: 5,
     price: {
       amount: 0,
+      // currency: "brl",
       priceIds: {
-        test: '',
-        production: '',
+        test: "",
+        production: "",
       },
     },
   },
   {
-    name: 'Pro',
-    slug: 'pro',
+    name: "Premium",
+    slug: "premium",
     quota: 50,
     pagesPerPdf: 25,
     price: {
-      amount: 14,
+      amount: 1,
+      // currency: "brl",
       priceIds: {
-        test: 'price_1NuEwTA19umTXGu8MeS3hN8L',
-        production: '',
+        test: "price_1OjvsHAUqlgdOC29wYIVfWzL",
+        production: "",
       },
     },
   },
-]
+];

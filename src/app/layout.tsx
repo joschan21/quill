@@ -21,20 +21,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <Providers>
-        <ThemeProvider>
-          <body
-            className={cn(
-              "min-h-screen font-sans antialiased bg-gray-200 dark:text-slate-200 text-gray-900 dark:bg-slate-800 grainy",
-              inter.className
-            )}
-          >
+      <body
+        className={cn(
+          "min-h-screen font-sans antialiased bg-gray-200 dark:text-slate-200 text-gray-900 dark:bg-slate-800 grainy",
+          inter.className
+        )}
+      >
+        <Providers>
+          <ThemeProvider>
             <Toaster />
             <Navbar />
             {children}
-          </body>
-        </ThemeProvider>
-      </Providers>
+          </ThemeProvider>
+        </Providers>
+      </body>
     </html>
   );
 }
