@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: p
+      MYSQL_DATABASE: talktopdf
+    volumes:
+      - db_data:/var/lib/mysql
+    command: "--default-authentication-plugin=mysql_native_password"
+    ports:
+      - "3306:3306"
+volumes:
+  db_data: {}
