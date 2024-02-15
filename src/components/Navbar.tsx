@@ -9,7 +9,7 @@ import {
 import { ArrowRight } from "lucide-react";
 import UserAccountNav from "./UserAccountNav";
 import MobileNav from "./MobileNav";
-import { ThemeProvider } from "next-themes";
+
 import ThemeSwitcher from "./ThemeSwitcher";
 
 const Navbar = () => {

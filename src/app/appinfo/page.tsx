@@ -45,13 +45,21 @@ const MyHome: React.FC = () => {
               STACK
             </div>
             {stackData.map((item) => (
-              <KeyValue keyName={item.keyName} value={item.value} />
+              <KeyValue
+                key={item.keyName}
+                keyName={item.keyName}
+                value={item.value}
+              />
             ))}
             <div className="col-span-2 my-4 divide-x-4 text-center text-xl font-semibold text-blue-500 dark:divide-solid">
               INFRA
             </div>
             {extrasData.map((item) => (
-              <KeyValue keyName={item.keyName} value={item.value} />
+              <KeyValue
+                key={item.keyName}
+                keyName={item.keyName}
+                value={item.value}
+              />
             ))}
           </div>
         </div>
