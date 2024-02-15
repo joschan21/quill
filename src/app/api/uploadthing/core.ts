@@ -18,7 +18,7 @@ const middleware = async () => {
   if (!user || !user.id) throw new Error("Unauthorized");
 
   const subscriptionPlan = await getUserSubscriptionPlan();
-  console.log(subscriptionPlan, user.id);
+
   return { subscriptionPlan, userId: user.id };
 };
 

@@ -27,13 +27,13 @@ export default function RootLayout({
           inter.className
         )}
       >
-        <Providers>
-          <ThemeProvider>
+        <ThemeProvider>
+          <Providers>
             <Toaster />
             <Navbar />
             {children}
-          </ThemeProvider>
-        </Providers>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );
