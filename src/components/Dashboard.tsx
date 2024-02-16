@@ -106,7 +106,7 @@ const Dashboard = ({ subscriptionPlan }: PageProps) => {
         <Skeleton height={100} className="my-2" count={3} />
       ) : (
         <div className="mt-16 flex flex-col items-center gap-2">
-          <Ghost className="h-8 w-8 text-zinc-800" />
+          <Ghost className="h-8 w-8 text-zinc-800 dark:text-slate-300" />
           <h3 className="font-semibold text-xl">Pretty empty around here</h3>
           <p>Let&apos;s upload your first PDF.</p>
         </div>
