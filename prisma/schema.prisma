@@ -1,4 +1,4 @@
-// This is your Prisma schema file,
+// This is your updated Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -12,16 +12,16 @@ datasource db {
 }
 
 model User {
-  id    String @id @unique //matches kinde user id
-  email String @unique
-
-  File    File[]
-  Message Message[]
-
-  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
-  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
-  stripePriceId          String?   @map(name: "stripe_price_id")
+  id                    String   @id @unique // matches kinde user id
+  email                 String   @unique
+  File                  File[]
+  Message               Message[]
+  stripeCustomerId      String?  @unique @map(name: "stripe_customer_id")
+  stripeSubscriptionId  String?  @unique @map(name: "stripe_subscription_id")
+  stripePriceId         String?  @map(name: "stripe_price_id")
   stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+
+  @@index([email], name: "emailIndex") // Adding an index for email for faster querying
 }
 
 enum UploadStatus {
@@ -32,31 +32,32 @@ enum UploadStatus {
 }
 
 model File {
-  id   String @id @default(cuid())
-  name String
-
+  id           String       @id @default(cuid())
+  name         String
   uploadStatus UploadStatus @default(PENDING)
+  url          String
+  key          String
+  messages     Message[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  User         User?        @relation(fields: [userId], references: [id])
+  userId       String?
 
-  url      String
-  key      String
-  messages Message[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
+  @@index([userId], name: "userIdIndex") // Index for userId to improve query performance
+  @@index([key], name: "keyIndex") // Optional: Consider indexing 'key' if queries often filter by this field
 }
 
 model Message {
-  id   String @id @default(cuid())
-  text String @db.Text()
-
+  id            String   @id @default(cuid())
+  text          String   @db.Text()
   isUserMessage Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  User          User?    @relation(fields: [userId], references: [id])
+  userId        String?
+  File          File?    @relation(fields: [fileId], references: [id])
+  fileId        String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  File      File?    @relation(fields: [fileId], references: [id])
-  fileId    String?
+  @@index([userId], name: "messageUserIdIndex") // Index for userId in messages
+  @@index([fileId], name: "fileIdIndex") // Index for fileId to improve message querying related to files
 }
