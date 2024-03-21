@@ -24,6 +24,7 @@ const nextConfig = {
     return config
   },
 
+  // Solves image error when logging in via Google
   images: {
     remotePatterns: [
       {
