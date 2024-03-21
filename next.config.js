@@ -23,6 +23,18 @@ const nextConfig = {
     config.resolve.alias.encoding = false
     return config
   },
+
+  // Solves image error when logging in via Google
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+        port: "",
+        pathname: "**",
+      },
+    ],
+  },
 }
 
 module.exports = nextConfig
