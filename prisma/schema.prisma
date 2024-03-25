@@ -1,26 +1,27 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "mysql"
-  url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model User {
-  id    String @id @unique //matches kinde user id
+model User{
+  id String @id @unique
   email String @unique
 
-  File    File[]
-  Message Message[]
+  File File[]
 
-  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
-  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
-  stripePriceId          String?   @map(name: "stripe_price_id")
+  stripeCustomerId String? @unique @map(name:"stripe_customer_id")
+  stripeSubscriptionID String? @unique @map(name: "stripe_subscriptio_id")
+  stripePricedId String? @map("stripe_price_id")
   stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
 }
 
@@ -39,24 +40,9 @@ model File {
 
   url      String
   key      String
-  messages Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   User      User?    @relation(fields: [userId], references: [id])
   userId    String?
-}
-
-model Message {
-  id   String @id @default(cuid())
-  text String @db.Text()
-
-  isUserMessage Boolean
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  File      File?    @relation(fields: [fileId], references: [id])
-  fileId    String?
 }
